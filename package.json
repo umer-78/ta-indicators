@@ -1,0 +1,47 @@
+{
+  "name": "@umer-78/ta-indicators",
+  "version": "1.0.0",
+  "description": "Dependency-free technical analysis indicators (SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, VWAP, OBV) in TypeScript.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "example": "npm run build && node examples/btc-signals.mjs",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "technical-analysis",
+    "indicators",
+    "trading",
+    "crypto",
+    "rsi",
+    "macd",
+    "typescript"
+  ],
+  "author": "Umer Hashmi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/umer-78/ta-indicators.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}

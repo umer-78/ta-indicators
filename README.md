@@ -47,11 +47,30 @@ const bands = bollinger(closes, 20);
 last(bands.upper);                     // 47.620
 ```
 
-A runnable example fetches live BTC candles from Binance's public API:
+Two runnable examples:
 
 ```bash
-npm run example
+npm run example:offline   # 220 bundled sample candles, no network needed
+npm run example           # live BTC/USDT daily candles from Binance's public API
 ```
+
+```text
+$ npm run example:offline
+Bars               220
+Last close         127.66
+SMA(50)            134.24
+RSI(14)            41.9
+MACD histogram     0.081
+Last MACD cross    above 0 bars ago
+Bollinger %B       0.35
+Stochastic %K/%D   30.8 / 28.2
+ATR(14)            2.20
+VWAP(20)           129.39
+OBV                10273
+```
+
+`examples/sample-candles.json` is synthetic data generated with a fixed seed, so the
+numbers above are reproducible.
 
 ## Install from source
 

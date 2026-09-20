@@ -18,6 +18,9 @@ export function obv(candles: readonly Candle[]): number[] {
  * or cumulative from the first bar when `period` is omitted.
  */
 export function vwap(candles: readonly Candle[], period?: number): Series {
+  if (period !== undefined && (!Number.isInteger(period) || period < 1)) {
+    throw new RangeError(`period must be a positive integer, got ${period}`);
+  }
   const out: Series = new Array(candles.length).fill(null);
   let pv = 0;
   let vol = 0;

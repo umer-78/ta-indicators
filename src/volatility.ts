@@ -1,6 +1,12 @@
 import type { Candle, Series } from './types.js';
 import { rollingStd, sma, wilder } from './moving.js';
 
+function assertPeriod(period: number): void {
+  if (!Number.isInteger(period) || period < 1) {
+    throw new RangeError(`period must be a positive integer, got ${period}`);
+  }
+}
+
 export interface BollingerResult {
   upper: Series;
   middle: Series;
@@ -12,6 +18,7 @@ export interface BollingerResult {
 }
 
 export function bollinger(closes: readonly number[], period = 20, mult = 2): BollingerResult {
+  assertPeriod(period);
   const middle = sma(closes, period);
   const sd = rollingStd(closes, period);
   const upper: Series = middle.map((m, i) => (m == null ? null : m + mult * sd[i]!));
@@ -35,5 +42,6 @@ export function trueRange(candles: readonly Candle[]): number[] {
 
 /** Average True Range (Wilder). */
 export function atr(candles: readonly Candle[], period = 14): Series {
+  assertPeriod(period);
   return wilder(trueRange(candles), period);
 }

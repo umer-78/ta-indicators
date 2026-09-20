@@ -65,6 +65,11 @@ describe('macd', () => {
 });
 
 describe('volatility', () => {
+  it('rejects invalid periods', () => {
+    expect(() => bollinger([1, 2, 3], 0)).toThrow(RangeError);
+    expect(() => atr([candle(1, 0)], 1.5)).toThrow(RangeError);
+  });
+
   it('bollinger bands collapse on a flat series', () => {
     const b = bollinger(Array(25).fill(10), 20);
     expect(b.upper[24]).toBe(10);
@@ -86,6 +91,17 @@ describe('volatility', () => {
 });
 
 describe('volume and oscillators', () => {
+  it('rejects invalid oscillator and VWAP periods', () => {
+    const candles = [candle(1, 0), candle(2, 1), candle(3, 2)];
+
+    expect(() => stochastic(candles, 0)).toThrow(RangeError);
+    expect(() => stochastic(candles, 2, 0)).toThrow(RangeError);
+    expect(() => stochastic(candles, 2, 2, 1.5)).toThrow(RangeError);
+
+    expect(() => vwap(candles, 0)).toThrow(RangeError);
+    expect(() => vwap(candles, 1.5)).toThrow(RangeError);
+  });
+
   const candles = [10, 11, 11, 9, 12].map((c, i) => candle(c, i, 1, 10 * (i + 1)));
   it('obv adds on up closes and subtracts on down closes', () => {
     expect(obv(candles)).toEqual([0, 20, 20, -20, 30]);

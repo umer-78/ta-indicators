@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 Small, dependency-free **technical analysis indicators** for TypeScript and
-JavaScript, for trading dashboards, backtests and bots.
+JavaScript — the kind you drop into a trading dashboard, backtest or bot.
 
 - Every function returns an array **the same length as its input**, with
   `null` where there is not enough history, so results line up with candles

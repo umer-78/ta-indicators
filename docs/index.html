@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ta-indicators — Interactive Demo</title>
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #eef0f4; --border: #dde1e8;
+  --text: #16181d; --muted: #5d6573; --accent: #2563eb; --accent-ink: #ffffff;
+  --good: #15803d; --bad: #b91c1c; --radius: 12px;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 4px 16px rgb(16 24 40 / 0.05);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1116; --surface: #161a21; --surface-2: #1d222b; --border: #2a303b;
+    --text: #e8eaee; --muted: #9aa3b2; --accent: #60a5fa; --accent-ink: #0b1220;
+    --good: #4ade80; --bad: #f87171; --shadow: none; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+a { color: var(--accent); }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+header h1 { margin: 0; font-size: 1.7rem; letter-spacing: -0.02em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 660px; }
+.gh { font-weight: 600; text-decoration: none; border: 1px solid var(--border); background: var(--surface); padding: 8px 14px; border-radius: var(--radius); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; margin-top: 16px; }
+.card h2 { margin: 0 0 12px; font-size: 1.05rem; }
+.controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.controls > div { min-width: 90px; }
+label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 3px; }
+input, select, button { font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }
+button { background: var(--accent); color: var(--accent-ink); border: none; cursor: pointer; font-weight: 600; }
+button:hover { filter: brightness(1.08); }
+.values { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin-top: 14px; }
+.val { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.val .k { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.val .v { font-family: var(--mono); font-weight: 700; font-size: 1.05rem; margin-top: 2px; }
+canvas { width: 100%; display: block; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 3px; margin-right: 5px; vertical-align: middle; border-radius: 2px; background: currentColor; }
+.hint { font-size: 0.82rem; color: var(--muted); }
+footer { margin-top: 32px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+footer a { color: var(--muted); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>ta-indicators</h1>
+    <p>Dependency-free technical analysis for TypeScript and JavaScript. Every function returns an array the same length as its input, with <code>null</code> where history is short — computed live in your browser on 220 sample candles.</p>
+  </div>
+  <a class="gh" href="https://github.com/umer-78/ta-indicators" rel="noopener">View on GitHub</a>
+</header>
+
+<main>
+<section class="card" aria-label="Indicator settings">
+  <h2>Indicators</h2>
+  <div class="controls">
+    <div><label for="smaP">SMA period</label><input id="smaP" type="number" min="2" max="200" value="50"></div>
+    <div><label for="emaP">EMA period</label><input id="emaP" type="number" min="2" max="200" value="20"></div>
+    <div><label for="rsiP">RSI period</label><input id="rsiP" type="number" min="2" max="100" value="14"></div>
+    <div><label for="bbP">Bollinger period</label><input id="bbP" type="number" min="5" max="100" value="20"></div>
+    <div><label for="bbM">Std-dev mult</label><input id="bbM" type="number" min="1" max="4" step="0.5" value="2"></div>
+    <div><label for="macdF">MACD fast</label><input id="macdF" type="number" min="2" max="50" value="12"></div>
+    <div><label for="macdS">MACD slow</label><input id="macdS" type="number" min="5" max="100" value="26"></div>
+    <div><label for="macdSig">Signal</label><input id="macdSig" type="number" min="2" max="50" value="9"></div>
+    <div><button id="btnRecompute" type="button">Recompute</button></div>
+  </div>
+  <div class="values" id="values" aria-live="polite"></div>
+</section>
+
+<section class="card" aria-label="Price chart">
+  <h2>Price + overlays <span class="hint" id="barCount"></span></h2>
+  <canvas id="priceChart" width="1040" height="360" role="img" aria-label="Close price with SMA, EMA and Bollinger bands"></canvas>
+  <div class="legend">
+    <span style="color:var(--accent)">Close</span>
+    <span style="color:#f59e0b">SMA</span>
+    <span style="color:#10b981">EMA</span>
+    <span style="color:#8b5cf6">Bollinger upper/lower</span>
+  </div>
+</section>
+
+<section class="card" aria-label="RSI">
+  <h2>RSI</h2>
+  <canvas id="rsiChart" width="1040" height="160" role="img" aria-label="RSI oscillator"></canvas>
+</section>
+
+<section class="card" aria-label="MACD">
+  <h2>MACD</h2>
+  <canvas id="macdChart" width="1040" height="200" role="img" aria-label="MACD line, signal and histogram"></canvas>
+  <div class="legend">
+    <span style="color:var(--accent)">MACD</span>
+    <span style="color:#f59e0b">Signal</span>
+    <span style="color:var(--muted)">Histogram</span>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p>17 tests passing · <a href="https://github.com/umer-78">github.com/umer-78</a></p>
+</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = id => document.getElementById(id);
+
+  // 220 bundled sample candles [open, high, low, close, volume], fixed seed — reproducible
+  const RAW = [[97.9,98.29,97.63,97.83,1531.6],[97.84,98.27,97.27,97.74,1517.2],[99.11,99.72,98.63,99.02,1040.7],[99.07,99.19,98.26,98.57,1455.3],[98.81,98.94,98.75,98.78,1109.2],[100.27,100.35,99.33,100.05,1280.7],[97.51,98.11,97.51,97.54,1311.4],[98.61,98.63,97.63,97.96,1529.3],[97.63,97.67,97.36,97.5,1041.3],[95.9,96.21,95.07,95.79,1202.1],[97.03,97.4,96.79,97.03,1399.5],[97.11,97.35,96.81,96.86,1312.1],[98.35,99.0,98.11,98.26,1221.9],[99.28,99.36,99.15,99.22,1239.4],[97.4,97.7,96.81,97.47,1390.8],[99.54,99.82,99.31,99.39,1308.6],[102.56,102.91,101.76,102.63,1097.9],[104.68,105.15,103.48,104.49,1710.3],[105.06,105.11,104.53,104.9,1044.8],[105.92,106.22,105.66,105.68,1541.9],[104.48,104.95,104.2,104.32,1716.2],[102.75,102.96,102.06,102.7,1401.7],[102.92,102.98,101.81,102.78,1322.6],[107.36,107.75,106.97,107.14,1088.7],[112.17,112.22,111.33,112.03,1032.7],[115.72,116.1,115.38,115.88,1569.7],[117.41,118.26,117.0,117.34,1244.2],[116.45,116.6,115.95,116.31,1032.9],[115.74,115.94,115.32,115.72,1191.0],[115.02,116.07,114.35,115.33,1071.5],[114.16,114.52,114.06,114.44,1872.7],[114.87,116.17,114.22,115.05,1075.8],[111.86,112.58,110.26,111.82,1447.6],[113.03,114.04,112.97,113.07,1621.8],[113.9,114.8,113.34,114.39,1657.5],[111.71,112.45,111.33,112.06,1394.6],[110.6,111.28,110.3,110.76,1500.3],[112.69,112.73,112.17,112.23,1393.0],[111.79,112.88,111.48,112.08,1576.0],[114.17,114.29,113.54,113.87,1034.5],[112.95,113.97,112.28,113.21,1002.2],[113.51,114.26,113.42,113.61,1233.1],[116.01,117.12,115.67,116.21,1275.4],[119.13,119.61,118.69,119.05,1832.2],[120.53,121.06,120.32,120.69,1307.3],[122.97,123.78,122.43,122.72,1950.2],[122.74,123.12,122.48,122.6,1092.5],[124.72,125.34,124.34,124.92,1701.0],[127.45,127.59,127.39,127.48,1081.2],[127.02,127.74,126.69,127.1,1660.2],[128.45,128.56,128.4,128.43,1141.3],[127.09,127.21,126.66,127.04,1315.6],[124.58,125.29,123.41,124.85,1106.7],[123.42,123.62,122.86,123.57,1030.6],[123.2,123.41,122.75,123.35,1157.6],[120.58,121.42,119.91,120.89,1439.6],[121.69,122.46,121.37,121.75,1301.2],[123.2,124.35,122.74,123.58,1362.7],[126.23,127.08,126.04,126.55,1157.4],[125.29,126.28,124.79,125.37,1494.3],[127.08,128.47,126.38,126.55,1688.5],[125.46,126.7,125.18,125.7,1291.5],[128.02,128.86,127.61,127.89,1095.7],[128.03,128.21,127.9,128.0,1234.5],[126.38,126.56,125.78,126.0,1638.0],[125.89,126.54,125.13,125.68,1155.8],[126.62,126.76,126.01,126.65,1161.4],[130.07,130.76,129.7,130.27,1426.4],[129.69,130.32,128.54,129.46,1202.4],[134.22,134.35,133.58,133.9,1118.6],[131.1,131.26,131.02,131.17,1473.0],[130.29,131.22,129.73,130.67,1178.9],[130.3,130.92,130.17,130.39,1873.7],[128.97,129.58,128.58,129.0,1305.3],[130.52,131.49,130.46,131.04,1199.5],[134.25,134.38,134.1,134.12,1084.4],[134.93,135.11,134.31,134.75,1341.9],[137.78,138.33,136.96,137.43,1333.3],[137.63,138.21,137.33,137.44,1293.5],[139.1,139.32,138.88,139.26,1541.9],[137.03,137.74,136.43,137.29,1181.0],[135.86,136.88,135.48,135.89,1200.1],[134.26,134.64,131.82,133.7,1163.2],[132.9,133.75,132.85,132.87,1180.4],[133.86,134.17,133.59,134.1,1498.2],[136.39,136.43,135.71,136.21,1802.3],[137.36,138.32,137.33,137.39,1608.5],[137.36,137.55,137.2,137.32,1068.4],[134.39,134.76,134.26,134.49,1108.0],[136.42,137.82,135.76,135.97,1079.3],[141.79,142.73,141.3,141.53,1208.3],[143.74,144.1,143.66,144.04,1038.7],[141.98,142.77,141.41,142.5,1027.3],[139.93,140.24,139.77,139.87,1005.6],[143.07,143.71,141.98,143.39,1280.0],[141.18,141.85,140.17,141.45,1078.5],[141.75,141.79,140.15,141.13,1161.2],[139.17,139.87,138.4,138.72,1642.3],[138.65,138.97,138.44,138.93,1245.2],[141.52,141.55,140.75,141.25,1428.2],[142.58,142.84,141.46,141.9,1279.0],[138.8,139.18,138.0,139.07,1000.4],[137.31,137.87,137.29,137.75,1490.6],[135.01,135.56,134.67,135.02,1082.2],[134.28,134.28,133.03,134.19,1452.9],[133.6,133.74,132.5,133.26,1017.5],[133.47,134.31,132.96,133.57,1886.0],[135.25,135.76,134.78,135.08,1408.8],[134.34,134.93,134.15,134.4,1532.3],[133.66,134.14,133.28,133.81,1424.5],[133.38,133.41,132.88,132.97,1003.7],[133.89,134.63,132.76,133.64,1544.5],[133.51,134.87,133.42,133.59,1777.9],[135.6,136.15,135.2,135.88,1050.2],[130.06,130.25,129.48,130.15,1730.3],[129.44,129.7,129.03,129.54,1310.5],[129.81,130.07,129.68,129.72,1556.0],[130.71,131.02,130.24,130.91,1206.1],[131.06,132.68,131.05,131.38,1029.1],[130.03,130.75,129.46,129.61,1547.2],[128.57,128.83,127.8,128.41,1475.0],[126.6,126.93,126.59,126.6,2116.8],[130.34,130.79,130.3,130.61,1055.2],[132.96,133.22,132.76,133.04,1040.2],[136.31,137.04,135.86,136.1,1319.1],[138.14,138.63,138.04,138.08,1763.5],[139.25,139.53,138.46,139.18,1032.6],[137.25,137.64,137.06,137.44,1357.0],[132.54,133.5,131.94,133.19,1022.0],[127.57,128.0,126.71,127.79,1467.2],[128.67,129.22,128.39,128.62,1133.2],[126.84,127.04,126.66,126.83,1573.6],[128.63,128.75,127.74,128.52,1045.6],[129.52,130.43,129.34,129.78,1148.8],[128.69,130.08,128.09,129.01,1367.4],[127.8,128.21,127.52,127.73,1368.1],[131.99,132.22,131.49,132.21,1252.4],[133.71,134.24,133.48,133.92,1484.8],[134.49,135.17,133.9,134.81,1300.3],[138.67,138.97,137.84,138.5,1067.0],[135.33,136.19,135.16,135.42,1048.7],[134.16,134.89,133.97,134.61,1083.2],[133.65,134.88,133.27,134.22,1409.4],[137.28,137.73,137.11,137.4,1669.4],[133.21,133.65,132.91,133.27,1585.7],[132.28,132.63,132.12,132.6,1617.3],[134.62,135.13,133.91,134.76,1438.5],[131.59,132.55,130.59,131.32,1149.9],[127.63,127.86,127.12,127.69,1197.4],[128.32,129.93,128.1,128.36,1170.8],[129.37,129.72,127.79,129.1,1320.0],[130.17,130.67,129.84,129.89,1248.2],[132.46,133.46,131.76,132.35,1186.9],[132.75,133.09,132.6,132.68,1633.1],[131.24,131.51,130.84,131.34,1315.0],[134.8,135.56,134.55,134.93,1417.0],[135.24,135.66,134.42,134.68,1959.4],[132.79,133.02,131.56,132.98,1298.4],[133.56,134.44,133.45,133.81,1187.0],[141.03,141.49,140.39,141.14,1030.9],[138.45,138.63,137.36,138.1,1128.6],[139.31,139.8,138.86,139.41,1352.9],[133.7,134.41,133.04,134.34,1401.0],[138.32,138.33,137.23,137.81,1611.6],[139.73,139.78,139.37,139.62,1446.3],[140.44,140.64,139.78,140.08,1265.8],[140.55,141.04,140.42,140.83,1126.2],[139.08,139.59,138.5,139.4,1631.6],[138.92,139.35,138.49,138.7,1620.5],[139.36,140.28,138.92,139.63,1247.0],[133.54,133.91,132.69,133.37,1388.0],[133.62,134.05,133.07,133.66,1173.6],[141.26,141.38,140.84,141.2,1247.0],[139.68,140.41,139.52,139.92,1346.4],[137.39,137.41,136.77,137.14,1041.6],[135.39,135.63,134.99,135.07,1354.2],[135.58,135.84,135.39,135.68,1275.5],[132.47,132.96,131.99,132.36,1458.2],[134.02,134.17,133.69,133.92,1129.5],[134.81,135.08,133.78,134.56,1041.9],[134.65,135.52,134.34,135.15,1060.0],[135.16,135.99,134.21,135.5,1079.9],[133.53,134.31,133.47,133.84,1317.7],[137.09,137.42,135.92,136.88,1041.5],[138.2,139.06,137.41,138.54,1413.5],[136.67,137.38,136.13,136.87,1491.7],[139.92,140.17,138.88,139.95,1313.7],[145.67,146.08,145.29,145.8,1149.7],[142.13,142.96,140.98,142.33,1286.9],[145.2,146.3,143.82,144.64,1651.8],[141.45,141.96,141.29,141.55,2048.5],[137.54,138.22,136.65,137.39,1519.9],[136.8,136.84,135.53,136.24,1124.5],[134.87,135.04,134.54,134.98,1050.4],[140.76,141.08,140.36,140.82,1310.8],[137.01,137.78,136.98,137.28,1068.5],[138.55,138.89,137.82,138.25,1223.9],[137.49,137.76,137.04,137.71,1149.0],[137.32,137.52,137.05,137.37,1524.0],[136.35,136.73,135.76,136.63,1429.2],[136.47,138.69,136.32,136.93,1413.9],[132.67,133.21,131.61,132.9,1349.7],[130.06,131.14,129.59,130.11,1057.6],[130.82,132.01,130.74,130.9,1536.2],[130.79,131.17,130.67,131.01,1308.9],[132.63,132.9,131.85,132.89,1197.7],[131.19,131.41,130.7,131.23,1013.4],[132.77,133.5,131.65,132.18,1692.7],[128.68,128.83,127.63,128.46,1789.8],[126.86,127.38,126.04,126.49,1348.6],[126.62,126.64,126.19,126.62,1065.1],[127.78,128.36,127.03,127.41,1226.0],[126.82,127.93,126.61,126.86,1167.1],[130.07,130.65,129.07,129.42,1046.5],[128.54,128.81,127.78,127.99,1196.3],[126.04,126.25,124.84,126.2,1900.1],[127.53,127.91,126.21,127.19,1180.2],[127.53,128.0,126.7,127.56,1473.3],[127.18,127.71,126.05,127.31,1152.7],[127.7,128.13,127.58,127.66,1256.5]];
+
+  const closes = RAW.map(c => c[3]);
+
+  // ---- indicators ported from src/ (O(n), same-length arrays with nulls) ----
+  function assertPeriod(p) { if (!Number.isInteger(p) || p < 1) throw new RangeError("period must be a positive integer"); }
+
+  function sma(values, period) {
+    assertPeriod(period);
+    const out = new Array(values.length).fill(null);
+    let sum = 0;
+    for (let i = 0; i < values.length; i++) {
+      sum += values[i];
+      if (i >= period) sum -= values[i - period];
+      if (i >= period - 1) out[i] = sum / period;
+    }
+    return out;
+  }
+
+  function ema(values, period) {
+    assertPeriod(period);
+    const out = new Array(values.length).fill(null);
+    if (values.length < period) return out;
+    const k = 2 / (period + 1);
+    let prev = 0;
+    for (let i = 0; i < period; i++) prev += values[i];
+    prev /= period;
+    out[period - 1] = prev;
+    for (let i = period; i < values.length; i++) {
+      prev = values[i] * k + prev * (1 - k);
+      out[i] = prev;
+    }
+    return out;
+  }
+
+  function wilder(values, period, start) {
+    start = start || 0;
+    assertPeriod(period);
+    const out = new Array(values.length).fill(null);
+    if (values.length - start < period) return out;
+    let prev = 0;
+    for (let i = start; i < start + period; i++) prev += values[i];
+    prev /= period;
+    out[start + period - 1] = prev;
+    for (let i = start + period; i < values.length; i++) {
+      prev = (prev * (period - 1) + values[i]) / period;
+      out[i] = prev;
+    }
+    return out;
+  }
+
+  function rollingStd(values, period) {
+    assertPeriod(period);
+    const out = new Array(values.length).fill(null);
+    let sum = 0, sumSq = 0;
+    for (let i = 0; i < values.length; i++) {
+      const v = values[i];
+      sum += v; sumSq += v * v;
+      if (i >= period) {
+        const old = values[i - period];
+        sum -= old; sumSq -= old * old;
+      }
+      if (i >= period - 1) {
+        const mean = sum / period;
+        out[i] = Math.sqrt(Math.max(0, sumSq / period - mean * mean));
+      }
+    }
+    return out;
+  }
+
+  function rsi(closes, period) {
+    assertPeriod(period);
+    const out = new Array(closes.length).fill(null);
+    if (closes.length <= period) return out;
+    const gains = [0], losses = [0];
+    for (let i = 1; i < closes.length; i++) {
+      const d = closes[i] - closes[i - 1];
+      gains.push(Math.max(d, 0));
+      losses.push(Math.max(-d, 0));
+    }
+    const g = wilder(gains, period, 1);
+    const l = wilder(losses, period, 1);
+    for (let i = period; i < closes.length; i++) {
+      const avgGain = g[i], avgLoss = l[i];
+      out[i] = avgLoss === 0 ? (avgGain === 0 ? 50 : 100) : 100 - 100 / (1 + avgGain / avgLoss);
+    }
+    return out;
+  }
+
+  function macd(closes, fast, slow, signalPeriod) {
+    assertPeriod(fast); assertPeriod(slow); assertPeriod(signalPeriod);
+    if (fast >= slow) throw new RangeError("fast period must be shorter than slow period");
+    const f = ema(closes, fast);
+    const s = ema(closes, slow);
+    const line = closes.map((_, i) => (f[i] == null || s[i] == null ? null : f[i] - s[i]));
+    const firstIdx = line.findIndex(v => v !== null);
+    const signal = new Array(closes.length).fill(null);
+    if (firstIdx >= 0) {
+      const compact = ema(line.slice(firstIdx), signalPeriod);
+      compact.forEach((v, j) => { signal[firstIdx + j] = v; });
+    }
+    const histogram = line.map((v, i) => (v == null || signal[i] == null ? null : v - signal[i]));
+    return { macd: line, signal, histogram };
+  }
+
+  function bollinger(closes, period, mult) {
+    assertPeriod(period);
+    const middle = sma(closes, period);
+    const sd = rollingStd(closes, period);
+    const upper = middle.map((m, i) => (m == null ? null : m + mult * sd[i]));
+    const lower = middle.map((m, i) => (m == null ? null : m - mult * sd[i]));
+    const bandwidth = middle.map((m, i) => (m == null || m === 0 ? null : (upper[i] - lower[i]) / m));
+    const percentB = middle.map((m, i) => {
+      if (m == null) return null;
+      const w = upper[i] - lower[i];
+      return w === 0 ? 0.5 : (closes[i] - lower[i]) / w;
+    });
+    return { upper, middle, lower, bandwidth, percentB };
+  }
+
+  function last(series) {
+    for (let i = series.length - 1; i >= 0; i--) if (series[i] != null) return series[i];
+    return null;
+  }
+
+  // ---- drawing ----
+  function theme() {
+    const cs = getComputedStyle(document.documentElement);
+    return {
+      border: cs.getPropertyValue("--border").trim() || "#dde1e8",
+      muted: cs.getPropertyValue("--muted").trim() || "#5d6573",
+      accent: cs.getPropertyValue("--accent").trim() || "#2563eb",
+      surface: cs.getPropertyValue("--surface").trim() || "#fff"
+    };
+  }
+
+  function prep(canvas) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || 1040;
+    const h = Number(canvas.getAttribute("height"));
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.style.height = h + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    return { ctx, w, h };
+  }
+
+  function drawLine(ctx, series, x, y, color, width) {
+    ctx.strokeStyle = color; ctx.lineWidth = width || 1.5;
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < series.length; i++) {
+      const v = series[i];
+      if (v == null) { started = false; continue; }
+      if (!started) { ctx.moveTo(x(i), y(v)); started = true; }
+      else ctx.lineTo(x(i), y(v));
+    }
+    ctx.stroke();
+  }
+
+  let state = {};
+
+  function recompute() {
+    const smaP = Math.max(2, Number($("smaP").value) || 50);
+    const emaP = Math.max(2, Number($("emaP").value) || 20);
+    const rsiP = Math.max(2, Number($("rsiP").value) || 14);
+    const bbP = Math.max(5, Number($("bbP").value) || 20);
+    const bbM = Number($("bbM").value) || 2;
+    const macdF = Math.max(2, Number($("macdF").value) || 12);
+    const macdS = Math.max(5, Number($("macdS").value) || 26);
+    const macdSig = Math.max(2, Number($("macdSig").value) || 9);
+
+    let macdResult;
+    try { macdResult = macd(closes, macdF, macdS, macdSig); }
+    catch (e) { alert(e.message); return; }
+
+    state = {
+      sma: sma(closes, smaP),
+      ema: ema(closes, emaP),
+      rsi: rsi(closes, rsiP),
+      bb: bollinger(closes, bbP, bbM),
+      macd: macdResult
+    };
+
+    $("barCount").textContent = "— " + closes.length + " bars, last close " + closes[closes.length - 1].toFixed(2);
+
+    const cards = [
+      ["Last close", closes[closes.length - 1].toFixed(2)],
+      ["SMA(" + smaP + ")", fmt(last(state.sma))],
+      ["EMA(" + emaP + ")", fmt(last(state.ema))],
+      ["RSI(" + rsiP + ")", fmt(last(state.rsi))],
+      ["MACD", fmt(last(state.macd.macd))],
+      ["Signal", fmt(last(state.macd.signal))],
+      ["Histogram", fmt(last(state.macd.histogram))],
+      ["BB upper", fmt(last(state.bb.upper))],
+      ["BB lower", fmt(last(state.bb.lower))],
+      ["%B", fmt(last(state.bb.percentB))],
+      ["Bandwidth", fmt(last(state.bb.bandwidth))]
+    ];
+    $("values").innerHTML = cards.map(([k, v]) =>
+      '<div class="val"><div class="k">' + k + '</div><div class="v">' + v + "</div></div>").join("");
+
+    drawAll();
+  }
+
+  function fmt(v) { return v == null ? "—" : (Math.abs(v) >= 100 ? v.toFixed(2) : v.toFixed(3)); }
+
+  function drawAll() {
+    drawPrice(); drawRsi(); drawMacd();
+  }
+
+  function drawPrice() {
+    const { ctx, w, h } = prep($("priceChart"));
+    const t = theme();
+    const pad = { l: 50, r: 12, t: 12, b: 24 };
+    const plotW = w - pad.l - pad.r, plotH = h - pad.t - pad.b;
+    const n = closes.length;
+    const all = closes.concat(state.bb.upper.filter(v => v != null), state.bb.lower.filter(v => v != null),
+      state.sma.filter(v => v != null), state.ema.filter(v => v != null));
+    let min = Math.min(...all), max = Math.max(...all);
+    const span = (max - min) || 1; min -= span * 0.04; max += span * 0.04;
+    const x = i => pad.l + (i / (n - 1)) * plotW;
+    const y = v => pad.t + plotH - ((v - min) / (max - min)) * plotH;
+
+    ctx.strokeStyle = t.border; ctx.fillStyle = t.muted; ctx.font = "11px sans-serif"; ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const v = min + ((max - min) / 4) * i;
+      const yy = y(v);
+      ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(w - pad.r, yy); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(v.toFixed(1), pad.l - 6, yy + 4);
+    }
+
+    // bollinger fill
+    ctx.fillStyle = "rgba(139,92,246,0.08)";
+    ctx.beginPath();
+    let started = false;
+    for (let i = 0; i < n; i++) {
+      if (state.bb.upper[i] == null) continue;
+      if (!started) { ctx.moveTo(x(i), y(state.bb.upper[i])); started = true; }
+      else ctx.lineTo(x(i), y(state.bb.upper[i]));
+    }
+    for (let i = n - 1; i >= 0; i--) {
+      if (state.bb.lower[i] == null) continue;
+      ctx.lineTo(x(i), y(state.bb.lower[i]));
+    }
+    ctx.closePath(); ctx.fill();
+
+    drawLine(ctx, state.bb.upper, x, y, "#8b5cf6", 1);
+    drawLine(ctx, state.bb.lower, x, y, "#8b5cf6", 1);
+    drawLine(ctx, closes, x, y, t.accent, 1.8);
+    drawLine(ctx, state.sma, x, y, "#f59e0b", 1.5);
+    drawLine(ctx, state.ema, x, y, "#10b981", 1.5);
+  }
+
+  function drawRsi() {
+    const { ctx, w, h } = prep($("rsiChart"));
+    const t = theme();
+    const pad = { l: 50, r: 12, t: 10, b: 20 };
+    const plotW = w - pad.l - pad.r, plotH = h - pad.t - pad.b;
+    const n = closes.length;
+    const x = i => pad.l + (i / (n - 1)) * plotW;
+    const y = v => pad.t + plotH - (v / 100) * plotH;
+
+    ctx.strokeStyle = t.border; ctx.fillStyle = t.muted; ctx.font = "11px sans-serif";
+    [0, 30, 50, 70, 100].forEach(v => {
+      const yy = y(v);
+      ctx.setLineDash(v === 30 || v === 70 ? [4, 4] : []);
+      ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(w - pad.r, yy); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(String(v), pad.l - 6, yy + 4);
+    });
+    ctx.setLineDash([]);
+    drawLine(ctx, state.rsi, x, y, t.accent, 1.8);
+  }
+
+  function drawMacd() {
+    const { ctx, w, h } = prep($("macdChart"));
+    const t = theme();
+    const pad = { l: 50, r: 12, t: 12, b: 22 };
+    const plotW = w - pad.l - pad.r, plotH = h - pad.t - pad.b;
+    const n = closes.length;
+    const m = state.macd;
+    const vals = m.macd.concat(m.signal, m.histogram).filter(v => v != null);
+    if (!vals.length) return;
+    let min = Math.min(...vals), max = Math.max(...vals);
+    const span = (max - min) || 1; min -= span * 0.1; max += span * 0.1;
+    const x = i => pad.l + (i / (n - 1)) * plotW;
+    const y = v => pad.t + plotH - ((v - min) / (max - min)) * plotH;
+
+    ctx.strokeStyle = t.border; ctx.fillStyle = t.muted; ctx.font = "11px sans-serif";
+    const zero = y(0);
+    ctx.beginPath(); ctx.moveTo(pad.l, zero); ctx.lineTo(w - pad.r, zero); ctx.stroke();
+    ctx.textAlign = "right"; ctx.fillText("0", pad.l - 6, zero + 4);
+
+    // histogram bars
+    const bw = Math.max(1, plotW / n - 1);
+    for (let i = 0; i < n; i++) {
+      const v = m.histogram[i];
+      if (v == null) continue;
+      const yy = y(v);
+      ctx.fillStyle = v >= 0 ? "rgba(21,128,61,0.55)" : "rgba(185,28,28,0.55)";
+      ctx.fillRect(x(i) - bw / 2, Math.min(yy, zero), bw, Math.abs(zero - yy));
+    }
+    drawLine(ctx, m.macd, x, y, t.accent, 1.6);
+    drawLine(ctx, m.signal, x, y, "#f59e0b", 1.6);
+  }
+
+  $("btnRecompute").addEventListener("click", recompute);
+  ["smaP","emaP","rsiP","bbP","bbM","macdF","macdS","macdSig"].forEach(id =>
+    $(id).addEventListener("change", recompute));
+  window.addEventListener("resize", drawAll);
+
+  recompute();
+})();
+</script>
+</body>
+</html>

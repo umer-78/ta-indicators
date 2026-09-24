@@ -1,5 +1,7 @@
 # ta-indicators
 
+**Live demo:** https://umer-78.github.io/ta-indicators/
+
 [![CI](https://github.com/umer-78/ta-indicators/actions/workflows/ci.yml/badge.svg)](https://github.com/umer-78/ta-indicators/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)

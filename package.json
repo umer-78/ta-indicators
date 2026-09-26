@@ -1,7 +1,7 @@
 {
   "name": "@umer-78/ta-indicators",
   "version": "1.0.0",
-  "description": "Dependency-free technical analysis indicators (SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, VWAP, OBV) in TypeScript.",
+  "description": "Dependency-free technical analysis indicators in strict TypeScript: SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, VWAP, OBV.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
